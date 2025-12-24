@@ -1,0 +1,123 @@
+[
+ {
+  "docstatus": 0,
+  "doctype": "Client Script",
+  "dt": "Material Request",
+  "enabled": 1,
+  "modified": "2025-12-24 19:07:25.810005",
+  "module": "Unicom Chemist",
+  "name": "Material Request filter script",
+  "script": "frappe.ui.form.on('Material Request', {\n    onload: function(frm) {\n        // Set warehouse filter and default on form load\n        set_warehouse_permissions(frm);\n    },\n    \n    refresh: function(frm) {\n        // Set warehouse filter and default on form refresh\n        set_warehouse_permissions(frm);\n    }\n});\n\nfunction set_warehouse_permissions(frm) {\n    // Get user permissions for warehouses\n    frappe.call({\n        method: 'frappe.client.get_list',\n        args: {\n            doctype: 'User Permission',\n            filters: {\n                user: frappe.session.user,\n                allow: 'Warehouse'\n            },\n            fields: ['for_value', 'is_default']\n        },\n        callback: function(r) {\n            if (r.message && r.message.length > 0) {\n                let permitted_warehouses = [];\n                let default_warehouse = null;\n                \n                // Extract warehouse names and find default\n                r.message.forEach(function(permission) {\n                    permitted_warehouses.push(permission.for_value);\n                    \n                    // Check if this is the default warehouse\n                    if (permission.is_default === 1) {\n                        default_warehouse = permission.for_value;\n                    }\n                });\n                \n                // Set filter for Set Target Warehouse field\n                frm.set_query('set_warehouse', function() {\n                    return {\n                        filters: {\n                            name: ['in', permitted_warehouses]\n                        }\n                    };\n                });\n                \n                // Set filter for Set Source Warehouse field (for Material Transfer)\n                frm.set_query('set_from_warehouse', function() {\n                    return {\n                        filters: {\n                            name: ['in', permitted_warehouses]\n                        }\n                    };\n                });\n                \n                // Auto-set default warehouse if found and field is empty\n                if (default_warehouse && !frm.doc.set_warehouse) {\n                    frm.set_value('set_warehouse', default_warehouse);\n                }\n                \n                // Also apply filter to warehouse field in items table\n                frm.set_query('warehouse', 'items', function() {\n                    return {\n                        filters: {\n                            name: ['in', permitted_warehouses]\n                        }\n                    };\n                });\n                \n                // Also apply filter to source warehouse field in items table (for Material Transfer)\n                frm.set_query('s_warehouse', 'items', function() {\n                    return {\n                        filters: {\n                            name: ['in', permitted_warehouses]\n                        }\n                    };\n                });\n                \n                console.log('Warehouse permissions applied:', permitted_warehouses);\n                if (default_warehouse) {\n                    console.log('Default warehouse set:', default_warehouse);\n                }\n            } else {\n                console.log('No warehouse permissions found for user:', frappe.session.user);\n                // If no permissions found, user can see all warehouses (fallback)\n            }\n        }\n    });\n}\n\n// Additional script to handle when items are added to ensure warehouse filtering\nfrappe.ui.form.on('Material Request Item', {\n    items_add: function(frm, cdt, cdn) {\n        // Apply warehouse filter when new item row is added\n        set_warehouse_permissions(frm);\n    }\n});\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n",
+  "view": "Form"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Client Script",
+  "dt": "Purchase Receipt",
+  "enabled": 1,
+  "modified": "2025-12-24 19:07:25.892386",
+  "module": "Unicom Chemist",
+  "name": "Purchase Reciept batch script",
+  "script": "frappe.ui.form.on('Purchase Receipt', {\n    after_submit: function(frm) {\n        // Wait a moment for batch creation, then show batch info\n        setTimeout(function() {\n            show_auto_created_batches(frm);\n        }, 1500);\n    }\n});\n\nfunction show_auto_created_batches(frm) {\n    console.log('Checking for auto-created batches for:', frm.doc.name);\n    \n    frappe.call({\n        method: 'frappe.client.get_list',\n        args: {\n            doctype: 'Batch',\n            filters: {\n                'reference_doctype': 'Purchase Receipt',\n                'reference_name': frm.doc.name\n            },\n            fields: ['name', 'batch_id', 'item', 'manufacturing_date', 'expiry_date'],\n            order_by: 'creation asc'\n        },\n        callback: function(response) {\n            if (response.message && response.message.length > 0) {\n                let batches = response.message;\n                console.log('Found batches:', batches);\n                \n                // Create mapping of item to batch for Purchase Receipt items\n                let item_batch_map = {};\n                batches.forEach(function(batch) {\n                    item_batch_map[batch.item] = batch.batch_id;\n                });\n                \n                // Create display table\n                let html = '<div style=\"margin: 15px;\">';\n                html += '<h4 style=\"color: #1976d2; margin-bottom: 15px;\">✅ Auto-Created Batch Numbers</h4>';\n                html += '<table class=\"table table-bordered\" style=\"margin-bottom: 20px;\">';\n                html += '<thead style=\"background-color: #f8f9fa;\"><tr>';\n                html += '<th style=\"padding: 8px;\">Item Code</th>';\n                html += '<th style=\"padding: 8px;\">Batch ID</th>';\n                html += '<th style=\"padding: 8px;\">Manufacturing Date</th>';\n                html += '<th style=\"padding: 8px;\">Expiry Date</th>';\n                html += '</tr></thead><tbody>';\n                \n                batches.forEach(function(batch) {\n                    html += `<tr>\n                        <td style=\"padding: 8px;\"><strong>${batch.item}</strong></td>\n                        <td style=\"padding: 8px; background-color: #e8f5e8;\"><code>${batch.batch_id}</code></td>\n                        <td style=\"padding: 8px;\">${batch.manufacturing_date || 'Not set'}</td>\n                        <td style=\"padding: 8px;\">${batch.expiry_date || 'Not set'}</td>\n                    </tr>`;\n                });\n                \n                html += '</tbody></table>';\n                \n                // Add summary for Purchase Receipt items\n                html += '<h5 style=\"margin-top: 20px;\">📋 Item → Batch Mapping:</h5>';\n                html += '<div style=\"background-color: #f8f9fa; padding: 10px; border-radius: 5px;\">';\n                \n                frm.doc.items.forEach(function(item) {\n                    let batch_id = item_batch_map[item.item_code] || 'Not found';\n                    let color = batch_id !== 'Not found' ? '#28a745' : '#dc3545';\n                    html += `<div style=\"margin: 5px 0;\">\n                        <strong>${item.item_code}</strong> → \n                        <span style=\"color: ${color}; font-family: monospace;\">${batch_id}</span>\n                    </div>`;\n                });\n                \n                html += '</div>';\n                html += '<div style=\"margin-top: 15px; font-size: 12px; color: #6c757d;\">';\n                html += '<em>💡 Tip: You can copy these batch IDs for your records</em>';\n                html += '</div></div>';\n                \n                // Show in a dialog\n                let dialog = new frappe.ui.Dialog({\n                    title: 'Batch Information Created',\n                    fields: [\n                        {\n                            fieldname: 'batch_info',\n                            fieldtype: 'HTML',\n                            options: html\n                        }\n                    ],\n                    primary_action_label: 'Copy Batch Info',\n                    primary_action: function() {\n                        // Create text for copying\n                        let copy_text = `Batch Information for ${frm.doc.name}:\\n\\n`;\n                        batches.forEach(function(batch) {\n                            copy_text += `${batch.item}: ${batch.batch_id}\\n`;\n                        });\n                        \n                        // Copy to clipboard\n                        navigator.clipboard.writeText(copy_text).then(function() {\n                            frappe.show_alert({\n                                message: 'Batch information copied to clipboard!',\n                                indicator: 'green'\n                            });\n                        });\n                    }\n                });\n                \n                dialog.show();\n                \n                // Also show a quick alert\n                frappe.show_alert({\n                    message: `✅ ${batches.length} batch(es) created successfully`,\n                    indicator: 'green'\n                });\n                \n            } else {\n                console.log('No batches found yet, may still be creating...');\n                frappe.show_alert({\n                    message: 'Batch creation in progress... Check manually if needed',\n                    indicator: 'orange'\n                });\n            }\n        },\n        error: function(err) {\n            console.error('Error fetching batch info:', err);\n            frappe.show_alert({\n                message: 'Error retrieving batch information',\n                indicator: 'red'\n            });\n        }\n    });\n}\n\n// Add manual button to check batch info anytime\nfrappe.ui.form.on('Purchase Receipt', {\n    refresh: function(frm) {\n        if (frm.doc.docstatus === 1) {\n            frm.add_custom_button(__('View Batch Info'), function() {\n                show_auto_created_batches(frm);\n            }, __('Actions'));\n        }\n    }\n});\n\n// Quick batch info in the form itself (optional)\nfrappe.ui.form.on('Purchase Receipt', {\n    refresh: function(frm) {\n        if (frm.doc.docstatus === 1) {\n            // Add a small info section to the form\n            setTimeout(function() {\n                add_batch_info_to_form(frm);\n            }, 2000);\n        }\n    }\n});\n\nfunction add_batch_info_to_form(frm) {\n    frappe.call({\n        method: 'frappe.client.get_list',\n        args: {\n            doctype: 'Batch',\n            filters: {\n                'reference_doctype': 'Purchase Receipt',\n                'reference_name': frm.doc.name\n            },\n            fields: ['batch_id', 'item'],\n            limit: 10\n        },\n        callback: function(response) {\n            if (response.message && response.message.length > 0) {\n                let batches = response.message;\n                \n                // Create a small summary\n                let batch_summary = batches.map(b => `${b.item}: ${b.batch_id}`).join(' | ');\n                \n                // Add to the form (if not already added)\n                if (!frm.fields_dict.batch_info_html) {\n                    frm.add_custom_button(__('📦 Batches: ') + batches.length, function() {\n                        show_auto_created_batches(frm);\n                    }, __('Info'));\n                }\n            }\n        }\n    });\n}",
+  "view": "Form"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Client Script",
+  "dt": "Sales Invoice",
+  "enabled": 0,
+  "modified": "2025-12-24 19:07:25.710361",
+  "module": "Unicom Chemist",
+  "name": "Sales Invoice Naming Series",
+  "script": "// Written by Parmeshwar\n\nfrappe.ui.form.on('Sales Invoice', {\n    onload: function(frm) {\n        apply_series(frm);\n    },\n    custom_branch: function(frm) {\n        apply_series(frm);\n    }\n});\n\nfunction apply_series(frm) {\n    if (!frm.doc.custom_branch) return;\n\n    // Mapping: Branch → Naming Series\n    let series_map = {\n        \"Centralized Branch\": [\"CB-ACC-SINV-.YYYY.-\"],\n        \"Republic Retail\": [\"RR-ACC-SINV-.YYYY.-\"],\n        \"Dansoman Roundabout Retail\": [\"DRR-ACC-SINV-.YYYY.-\"],\n        \"Dansoman Market Retail\": [\"DMR-ACC-SINV-.YYYY.-\"],\n        \"Dansoman Market Wholesale\": [\"DMW-ACC-SINV-.YYYY.-\"],\n        \"Osu Wholesale\": [\"OW-ACC-SINV-.YYYY.-\"],\n        \"Mallam Wholesale\": [\"MW-ACC-SINV-.YYYY.-\"],\n        \"Akukor Foto Wholesale\": [\"AFW-ACC-SINV-.YYYY.-\"],\n        \"Kasoa Amanfrom Wholesale\": [\"KAW-ACC-SINV-.YYYY.-\"],\n        \"Mallam Retail\": [\"MR-ACC-SINV-.YYYY.-\"],\n        \"Osu Retail\": [\"OR-ACC-SINV-.YYYY.-\"],\n        \"Tantra\": [\"T-ACC-SINV-.YYYY.-\"]\n    };\n\n    let series_list = series_map[frm.doc.custom_branch] || [];\n\n    // Update naming_series dropdown\n    frm.set_df_property(\"naming_series\", \"options\", series_list.join(\"\\n\"));\n\n    // Auto-select\n    if (series_list.length) {\n        frm.set_value(\"naming_series\", series_list[0]);\n    }\n}\n",
+  "view": "Form"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Client Script",
+  "dt": "Account",
+  "enabled": 1,
+  "modified": "2025-12-24 19:07:25.849539",
+  "module": "Unicom Chemist",
+  "name": "Read only set for account code",
+  "script": "// Written by Parmeshwar\n\nfrappe.ui.form.on('Account', {\n    refresh(frm) {\n        // if value exists = lock the field\n        if (frm.doc.custom_account_code) {\n            frm.set_df_property('custom_account_code', 'read_only', 1);\n        } else {\n            // allow user to enter for first time\n            frm.set_df_property('custom_account_code', 'read_only', 0);\n        }\n    }\n});\n",
+  "view": "Form"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Client Script",
+  "dt": "Purchase Invoice",
+  "enabled": 0,
+  "modified": "2025-12-24 19:07:25.871555",
+  "module": "Unicom Chemist",
+  "name": "Serial No fetch PR to PI",
+  "script": "    frappe.ui.form.on(\"Purchase Invoice Item\", \"item_code\", function(frm, cdt, cdn) {\n        var row = locals[cdt][cdn];\n        if (row.item_code) {\n            frappe.db.get_value(\"Purchase Receipt Item\", {\n                \"parent_type\": \"Purchase Receipt\",\n                \"item_code\": row.item_code,\n                \"parent\": frm.doc.purchase_receipt // Assuming Purchase Receipt is linked to Purchase Invoice\n            }, \"serial_no\", function(value) {\n                if (value && value.serial_no) {\n                    frappe.model.set_value(cdt, cdn, \"serial_no_from_pr\", value.serial_no);\n                } else {\n                    frappe.model.set_value(cdt, cdn, \"serial_no_from_pr\", \"\"); // Clear if no match\n                }\n            });\n        }\n    });",
+  "view": "Form"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Client Script",
+  "dt": "Item",
+  "enabled": 1,
+  "modified": "2025-12-24 19:07:25.829340",
+  "module": "Unicom Chemist",
+  "name": "Barcode auto set in item master",
+  "script": "// frappe.ui.form.on(\"Item\", {\n//     after_save(frm) {\n//         if (!frm.doc.barcodes || frm.doc.barcodes.length === 0) {\n\n//             // Generate 7-digit base\n//             let base = String(Math.floor(1000000 + Math.random() * 9000000));\n\n//             // Calculate checksum\n//             const calc_checksum = (code) => {\n//                 let sum = 0;\n//                 for (let i = 0; i < 7; i++) {\n//                     let digit = parseInt(code[i]);\n//                     sum += (i % 2 === 0) ? digit * 3 : digit;\n//                 }\n//                 return (10 - (sum % 10)) % 10;\n//             };\n\n//             let checksum = calc_checksum(base);\n//             let barcode = base + checksum;\n\n//             // Add child row AFTER save\n//             frappe.call({\n//                 method: \"frappe.client.set_value\",\n//                 args: {\n//                     doctype: \"Item\",\n//                     name: frm.doc.name,\n//                     fieldname: \"barcodes\",\n//                     value: [{\n//                         \"barcode\": barcode,\n//                         \"barcode_type\": \"EAN-8\"\n//                     }]\n//                 },\n//                 callback() {\n//                     frm.reload_doc();\n//                 }\n//             });\n//         }\n//     }\n// });\n\n\n\n\nfrappe.ui.form.on(\"Item\", {\n    refresh(frm) {\n        frm.set_query(\"custom_parent_item_group\", () => {\n            return {\n                filters: {\n                    \"is_group\": 1\n                }\n            };\n        });\n    }\n});",
+  "view": "Form"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Client Script",
+  "dt": "Stock Entry",
+  "enabled": 1,
+  "modified": "2025-12-24 19:07:25.749203",
+  "module": "Unicom Chemist",
+  "name": "Shelf filter Stock entry",
+  "script": "frappe.ui.form.on('Stock Entry', {\r\n    onload(frm) {\r\n        apply_shelf_filters(frm);\r\n    },\r\n    refresh(frm) {\r\n        apply_shelf_filters(frm);\r\n    }\r\n});\r\n\r\nfunction apply_shelf_filters(frm) {\r\n\r\n    // SOURCE SHELF → Source Warehouse\r\n    frm.fields_dict.items.grid.get_field('shelf').get_query =\r\n        function (doc, cdt, cdn) {\r\n            let row = locals[cdt][cdn];\r\n\r\n            return {\r\n                filters: {\r\n                    warehouse: row.s_warehouse || doc.from_warehouse\r\n                }\r\n            };\r\n        };\r\n\r\n    // TARGET SHELF → Target Warehouse\r\n    frm.fields_dict.items.grid.get_field('to_shelf').get_query =\r\n        function (doc, cdt, cdn) {\r\n            let row = locals[cdt][cdn];\r\n\r\n            return {\r\n                filters: {\r\n                    warehouse: row.t_warehouse || doc.to_warehouse\r\n                }\r\n            };\r\n        };\r\n}\r\nfrappe.ui.form.on('Stock Entry Detail', {\r\n\r\n    // Source warehouse changed → clear source shelf\r\n    s_warehouse(frm, cdt, cdn) {\r\n        frappe.model.set_value(cdt, cdn, 'shelf', null);\r\n    },\r\n\r\n    // Target warehouse changed → clear target shelf\r\n    t_warehouse(frm, cdt, cdn) {\r\n        frappe.model.set_value(cdt, cdn, 'to_shelf', null);\r\n    }\r\n});\r\n",
+  "view": "Form"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Client Script",
+  "dt": "Purchase Receipt",
+  "enabled": 1,
+  "modified": "2025-12-24 19:07:25.768181",
+  "module": "Unicom Chemist",
+  "name": "Shelf filter Purchase receipt",
+  "script": "frappe.ui.form.on('Purchase Receipt', {\r\n    onload(frm) {\r\n        apply_pr_shelf_filters(frm);\r\n    },\r\n    refresh(frm) {\r\n        apply_pr_shelf_filters(frm);\r\n    }\r\n});\r\n\r\nfunction apply_pr_shelf_filters(frm) {\r\n\r\n    // TARGET / ACCEPTED SHELF\r\n    frm.fields_dict.items.grid.get_field('shelf').get_query =\r\n        function (doc, cdt, cdn) {\r\n            let row = locals[cdt][cdn];\r\n            return {\r\n                filters: {\r\n                    warehouse: row.warehouse\r\n                }\r\n            };\r\n        };\r\n\r\n    // REJECTED SHELF\r\n    frm.fields_dict.items.grid.get_field('rejected_shelf').get_query =\r\n        function (doc, cdt, cdn) {\r\n            let row = locals[cdt][cdn];\r\n            return {\r\n                filters: {\r\n                    warehouse: row.rejected_warehouse\r\n                }\r\n            };\r\n        };\r\n}\r\n\r\nfrappe.ui.form.on('Purchase Receipt Item', {\r\n    warehouse(frm, cdt, cdn) {\r\n        frappe.model.set_value(cdt, cdn, 'shelf', null);\r\n    },\r\n    rejected_warehouse(frm, cdt, cdn) {\r\n        frappe.model.set_value(cdt, cdn, 'rejected_shelf', null);\r\n    }\r\n});\r\n",
+  "view": "Form"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Client Script",
+  "dt": "Purchase Invoice",
+  "enabled": 1,
+  "modified": "2025-12-24 19:07:25.790083",
+  "module": "Unicom Chemist",
+  "name": "Shelf filter Purchase Invoice",
+  "script": "frappe.ui.form.on('Purchase Invoice', {\r\n    onload(frm) {\r\n        apply_pi_shelf_filters(frm);\r\n    },\r\n    refresh(frm) {\r\n        apply_pi_shelf_filters(frm);\r\n    }\r\n});\r\n\r\nfunction apply_pi_shelf_filters(frm) {\r\n\r\n    // TARGET / ACCEPTED SHELF\r\n    frm.fields_dict.items.grid.get_field('shelf').get_query =\r\n        function (doc, cdt, cdn) {\r\n            let row = locals[cdt][cdn];\r\n            return {\r\n                filters: {\r\n                    warehouse: row.warehouse\r\n                }\r\n            };\r\n        };\r\n\r\n    // REJECTED SHELF\r\n    frm.fields_dict.items.grid.get_field('rejected_shelf').get_query =\r\n        function (doc, cdt, cdn) {\r\n            let row = locals[cdt][cdn];\r\n            return {\r\n                filters: {\r\n                    warehouse: row.rejected_warehouse\r\n                }\r\n            };\r\n        };\r\n}\r\nfrappe.ui.form.on('Purchase Invoice Item', {\r\n    warehouse(frm, cdt, cdn) {\r\n        frappe.model.set_value(cdt, cdn, 'shelf', null);\r\n    },\r\n    rejected_warehouse(frm, cdt, cdn) {\r\n        frappe.model.set_value(cdt, cdn, 'rejected_shelf', null);\r\n    }\r\n});\r\n",
+  "view": "Form"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Client Script",
+  "dt": "Stock Reconciliation",
+  "enabled": 1,
+  "modified": "2025-12-24 19:07:25.730049",
+  "module": "Unicom Chemist",
+  "name": "Shelf filter for Stock Reco",
+  "script": "frappe.ui.form.on('Stock Reconciliation', {\r\n    onload(frm) {\r\n        apply_sr_shelf_filter(frm);\r\n    },\r\n    refresh(frm) {\r\n        apply_sr_shelf_filter(frm);\r\n    }\r\n});\r\n\r\nfunction apply_sr_shelf_filter(frm) {\r\n    frm.fields_dict.items.grid.get_field('shelf').get_query =\r\n        function (doc, cdt, cdn) {\r\n\r\n            let row = locals[cdt][cdn];\r\n\r\n            return {\r\n                filters: {\r\n                    warehouse: row.warehouse || doc.warehouse\r\n                }\r\n            };\r\n        };\r\n}\r\nfrappe.ui.form.on('Stock Reconciliation Item', {\r\n    warehouse(frm, cdt, cdn) {\r\n        frappe.model.set_value(cdt, cdn, 'shelf', null);\r\n    }\r\n});\r\n",
+  "view": "Form"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Client Script",
+  "dt": "Sales Invoice",
+  "enabled": 1,
+  "modified": "2025-12-24 19:07:25.681888",
+  "module": "Unicom Chemist",
+  "name": "Naming Invoice Script",
+  "script": "frappe.ui.form.on('Sales Invoice', {\r\n    branch: function(frm) {\r\n        if (!frm.doc.branch) return;\r\n\r\n        frappe.db.get_value('Branch', frm.doc.branch, 'custom_abbr')\r\n            .then(r => {\r\n                if (r.message && r.message.custom_abbr) {\r\n                    frm.set_value(\r\n                        'naming_series',\r\n                        `SINV-${r.message.custom_abbr}-.YYYY.-.#####`\r\n                    );\r\n                } else {\r\n                    frappe.msgprint(__('Branch Code not found'));\r\n                }\r\n            });\r\n    },\r\n\r\n    onload: function(frm) {\r\n        if (frm.doc.branch && !frm.doc.naming_series) {\r\n            frm.trigger('branch');\r\n        }\r\n    }\r\n});\r\n",
+  "view": "Form"
+ }
+]

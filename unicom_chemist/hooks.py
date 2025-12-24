@@ -242,3 +242,22 @@ app_license = "mit"
 # 	"Logging DocType Name": 30  # days to retain logs
 # }
 
+
+fixtures = [
+    #"Role",
+    #"Role Profile",
+    "Client Script",
+    #"Server Script",
+    #"Tax Category",
+    #"Workspace",
+    #"Custom HTML Block",
+    #"Custom DocPerm",
+    #"Workflow",
+    #"Workflow State",
+    #"Workflow Action",
+     "Print Format",
+    #"Number Card",
+    #"Report",
+    #"Workflow Action Master",
+    #"Module Profile",
+]
