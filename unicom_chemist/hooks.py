@@ -243,10 +243,18 @@ app_license = "mit"
 # }
 
 
+# Override POS page directly
+page_js = {
+    "point-of-sale": "public/js/pos_override.js"
+}
+
+# Also include JS globally to ensure it loads
+app_include_js = "/assets/unicom_chemist/js/pos_override.js"
+
 fixtures = [
     #"Role",
     #"Role Profile",
-    "Client Script",
+    #"Client Script",
     #"Server Script",
     #"Tax Category",
     #"Workspace",
@@ -255,7 +263,7 @@ fixtures = [
     #"Workflow",
     #"Workflow State",
     #"Workflow Action",
-     "Print Format",
+    "Print Format",
     #"Number Card",
     #"Report",
     #"Workflow Action Master",
