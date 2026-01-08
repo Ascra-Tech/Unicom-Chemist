@@ -251,6 +251,19 @@ page_js = {
 # Also include JS globally to ensure it loads
 app_include_js = "/assets/unicom_chemist/js/pos_override.js"
 
+# Reports
+# --------
+
+reports = [
+    {
+        "module": "unicom_chemist",
+        "title": "Batch Expiry Status",
+        "name": "Batch Expiry Status",
+        "doctype": "Batch",
+        "is_query_report": True
+    }
+]
+
 fixtures = [
     #"Role",
     #"Role Profile",
@@ -265,7 +278,7 @@ fixtures = [
     #"Workflow Action",
     "Print Format",
     #"Number Card",
-    #"Report",
+    "Report",
     #"Workflow Action Master",
     #"Module Profile",
 ]
