@@ -267,8 +267,8 @@ reports = [
 fixtures = [
     #"Role",
     #"Role Profile",
-    #"Client Script",
-    #"Server Script",
+    "Client Script",
+    "Server Script",
     #"Tax Category",
     #"Workspace",
     #"Custom HTML Block",
@@ -278,7 +278,7 @@ fixtures = [
     #"Workflow Action",
     "Print Format",
     #"Number Card",
-    "Report",
+    #"Report",
     #"Workflow Action Master",
     #"Module Profile",
 ]
