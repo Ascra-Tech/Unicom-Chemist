@@ -1,0 +1,34 @@
+{
+ "charts": [],
+ "content": "[{\"id\":\"GWiSVaUMJ8\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">UCL HR Dashboard</span>\",\"col\":12}},{\"id\":\"EV9DHooHH5\",\"type\":\"custom_block\",\"data\":{\"custom_block_name\":\"UCL HR Dashboard\",\"col\":12}}]",
+ "creation": "2026-01-14 17:55:30.431526",
+ "custom_blocks": [
+  {
+   "custom_block_name": "UCL HR Dashboard",
+   "label": "UCL HR Dashboard"
+  }
+ ],
+ "docstatus": 0,
+ "doctype": "Workspace",
+ "for_user": "",
+ "hide_custom": 0,
+ "icon": "expand-alt",
+ "idx": 0,
+ "indicator_color": "green",
+ "is_hidden": 0,
+ "label": "UCL HR Dashboard",
+ "links": [],
+ "modified": "2026-01-14 17:59:21.058828",
+ "modified_by": "garima@ascratech.com",
+ "module": "Unicom Chemist",
+ "name": "UCL HR Dashboard",
+ "number_cards": [],
+ "owner": "garima@ascratech.com",
+ "parent_page": "",
+ "public": 1,
+ "quick_lists": [],
+ "roles": [],
+ "sequence_id": 38.0,
+ "shortcuts": [],
+ "title": "UCL HR Dashboard"
+}
