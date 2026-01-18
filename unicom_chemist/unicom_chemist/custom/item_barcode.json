@@ -1,0 +1,32 @@
+{
+ "custom_fields": [],
+ "custom_perms": [],
+ "doctype": "Item Barcode",
+ "links": [],
+ "property_setters": [
+  {
+   "_assign": null,
+   "_comments": null,
+   "_liked_by": null,
+   "_user_tags": null,
+   "creation": "2026-01-08 20:54:32.283995",
+   "default_value": null,
+   "doc_type": "Item Barcode",
+   "docstatus": 0,
+   "doctype_or_field": "DocField",
+   "field_name": "barcode",
+   "idx": 0,
+   "is_system_generated": 1,
+   "modified": "2026-01-08 20:54:32.283995",
+   "modified_by": "garima@ascratech.com",
+   "module": null,
+   "name": "Item Barcode-barcode-hidden",
+   "owner": "garima@ascratech.com",
+   "property": "hidden",
+   "property_type": "Check",
+   "row_name": null,
+   "value": "0"
+  }
+ ],
+ "sync_on_migrate": 1
+}
