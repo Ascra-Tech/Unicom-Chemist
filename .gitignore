@@ -3,5 +3,7 @@
 *.egg-info
 *.swp
 tags
+dasboard_research
+print_format
 node_modules
 __pycache__

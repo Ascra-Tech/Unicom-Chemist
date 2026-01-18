@@ -38,6 +38,13 @@ def get_columns():
 			"width": 150
 		},
 		{
+			"label": _("Branch"),
+			"fieldname": "branch",
+			"fieldtype": "Link",
+			"options": "Branch",
+			"width": 120
+		},
+		{
 			"label": _("Status"),
 			"fieldname": "status",
 			"fieldtype": "Data",

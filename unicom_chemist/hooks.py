@@ -43,7 +43,10 @@ app_license = "mit"
 # page_js = {"page" : "public/js/file.js"}
 
 # include js in doctype views
-doctype_js = {"Sales Invoice" : "public/js/sales_invoice.js"}
+doctype_js = {
+    "Sales Invoice" : "public/js/sales_invoice.js",
+    "Stock Entry" : "public/js/stock_entry.js"
+}
 # doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
 # doctype_calendar_js = {"doctype" : "public/js/doctype_calendar.js"}
@@ -130,7 +133,8 @@ doctype_js = {"Sales Invoice" : "public/js/sales_invoice.js"}
 # Override standard doctype classes
 
 override_doctype_class = {
-	"Sales Invoice": "unicom_chemist.unicom_chemist.sales_invoice.CustomSalesInvoice"
+	"Sales Invoice": "unicom_chemist.unicom_chemist.sales_invoice.CustomSalesInvoice",
+	"Salary Slip": "unicom_chemist.unicom_chemist.salary_slip_override.CustomSalarySlip"
 }
 
 # Document Events
@@ -257,9 +261,16 @@ app_include_js = "/assets/unicom_chemist/js/pos_override.js"
 reports = [
     {
         "module": "unicom_chemist",
-        "title": "Batch Expiry Status",
-        "name": "Batch Expiry Status",
-        "doctype": "Batch",
+        "title": "Sales Invoice Report UCL",
+        "name": "Sales Invoice Report UCL",
+        "doctype": "Sales Invoice",
+        "is_query_report": True
+    },
+    {
+        "module": "unicom_chemist",
+        "title": "POS Invoice Report UCL",
+        "name": "POS Invoice Report UCL",
+        "doctype": "Sales Invoice",
         "is_query_report": True
     }
 ]
