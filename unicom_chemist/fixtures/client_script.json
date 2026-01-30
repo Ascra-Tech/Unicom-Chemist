@@ -152,5 +152,27 @@
   "name": "Naming Invoice Script",
   "script": "frappe.ui.form.on('Sales Invoice', {\r\n    branch: function(frm) {\r\n        if (!frm.doc.branch) return;\r\n\r\n        frappe.db.get_value('Branch', frm.doc.branch, 'custom_abbr')\r\n            .then(r => {\r\n                if (r.message && r.message.custom_abbr) {\r\n                    frm.set_value(\r\n                        'naming_series',\r\n                        `SINV-${r.message.custom_abbr}-.YYYY.-.#####`\r\n                    );\r\n                } else {\r\n                    frappe.msgprint(__('Branch Code not found'));\r\n                }\r\n            });\r\n    },\r\n\r\n    onload: function(frm) {\r\n        if (frm.doc.branch && !frm.doc.naming_series) {\r\n            frm.trigger('branch');\r\n        }\r\n    }\r\n});\r\n",
   "view": "Form"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Client Script",
+  "dt": "User",
+  "enabled": 1,
+  "modified": "2026-01-20 12:17:40.703238",
+  "module": null,
+  "name": "UI for user",
+  "script": "frappe.ui.form.on('User', {\r\n    after_render: function() {\r\n        apply_custom_theme();\r\n    },\r\n    refresh: function() {\r\n        apply_custom_theme();\r\n    }\r\n});\r\n\r\nfunction apply_custom_theme() {\r\n    if (!document.getElementById('custom-desk-style')) {\r\n        const style = document.createElement('style');\r\n        style.id = 'custom-desk-style';\r\n        style.innerHTML = `\r\n            /* 1. AWESOME BAR (Search Bar) - Light Sky Blue */\r\n            .search-bar {\r\n                background-color: #f0f8ff !important; \r\n                border: 1px solid #cce0f5 !important;\r\n                border-radius: 10px !important;\r\n                box-shadow: 0 2px 8px rgba(135, 206, 235, 0.3) !important;\r\n                margin-top: 4px !important;\r\n                transition: all 0.2s ease;\r\n            }\r\n            .search-bar:hover {\r\n                box-shadow: 0 2px 12px rgba(135, 206, 235, 0.5) !important;\r\n            }\r\n\r\n            /* 2. DASHBOARD WIDGETS - White with Light Sky Blue Shadow */\r\n            .widget, .widget-group .widget, .number-widget-box, .stat-card {\r\n                background-color: #ffffff !important;\r\n                border: 1px solid #e2e8f0 !important;\r\n                border-radius: 12px !important;\r\n                box-shadow: 0 8px 20px rgba(135, 206, 235, 0.2) !important;\r\n                transition: all 0.3s ease !important;\r\n            }\r\n            .widget:hover, .number-widget-box:hover {\r\n                transform: translateY(-4px);\r\n                box-shadow: 0 12px 25px rgba(135, 206, 235, 0.4) !important;\r\n                border-color: #add8e6 !important;\r\n            }\r\n\r\n            /* 3. SIDEBAR SELECTION - Matching your Sky Blue Theme */\r\n            /* This targets the grey highlight in your image */\r\n            .sidebar-item-container.active, \r\n            .sidebar-item-container:hover {\r\n                background-color: rgba(135, 206, 235, 0.2) !important; /* Light Sky Blue Tint */\r\n                color: #2c3e50 !important;\r\n                border-radius: 8px !important;\r\n                margin: 0 8px !important;\r\n            }\r\n\r\n            .sidebar-item-container.active .sidebar-item-label,\r\n            .sidebar-item-container:hover .sidebar-item-label {\r\n                font-weight: 600 !important;\r\n                color: #007bff !important; /* Deeper blue text for the active item */\r\n            }\r\n\r\n            /* 4. NAVBAR & SIDEBAR BACKGROUND */\r\n            .navbar.navbar-light {\r\n                background-color: #ffffff !important;\r\n                border-bottom: 1px solid #d1d8dd !important;\r\n            }\r\n            .desk-sidebar {\r\n                background-color: #f8fafc !important;\r\n                border-right: 1px solid #e2e8f0 !important;\r\n            }\r\n        `;\r\n        document.head.appendChild(style);\r\n    }\r\n}\r\n\r\n// Ensure it runs on Page Load\r\n$(document).ready(function() {\r\n    apply_custom_theme();\r\n});\r\n\r\n// v15 Observer to keep the theme active during navigation\r\nconst themeObserver = new MutationObserver(() => {\r\n    apply_custom_theme();\r\n});\r\nthemeObserver.observe(document.documentElement, { childList: true, subtree: true });",
+  "view": "Form"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Client Script",
+  "dt": "Stock Entry",
+  "enabled": 1,
+  "modified": "2026-01-28 12:23:27.724007",
+  "module": null,
+  "name": "Search Filter",
+  "script": "frappe.ui.form.on('Stock Entry', {\r\n    refresh(frm) {\r\n\r\n        // Patch search only once\r\n        if (frappe.ui.form.MultiSelectDialog.__patched) return;\r\n        frappe.ui.form.MultiSelectDialog.__patched = true;\r\n\r\n        const original_get_results =\r\n            frappe.ui.form.MultiSelectDialog.prototype.get_results;\r\n\r\n        frappe.ui.form.MultiSelectDialog.prototype.get_results = function () {\r\n            let me = this;\r\n\r\n            // force \"contains\" search instead of \"starts with\"\r\n            me.args.txt = \"%\" + (me.args.txt || \"\") + \"%\";\r\n\r\n            return original_get_results.apply(this, arguments);\r\n        };\r\n    }\r\n});\r\n",
+  "view": "Form"
  }
 ]
